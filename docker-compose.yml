@@ -1,0 +1,31 @@
+version: '3.8'
+services:
+  api:
+    build: .
+    ports:
+      - "5012:8080" # Puerto personalizado según las últimas 4 cifras
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=db;Database=TaskCreatorDB;User=sa;Password=Your_password123;TrustServerCertificate=true;
+    depends_on:
+      - db
+    networks:
+      - app-network
+
+  db:
+    image: "mcr.microsoft.com/mssql/server:2022-latest"
+    environment:
+      SA_PASSWORD: "Your_password123"
+      ACCEPT_EULA: "Y"
+    ports:
+      - "2105:1433" # Puerto invertido según las últimas 4 cifras
+    volumes:
+      - sql-data:/var/opt/mssql
+    networks:
+      - app-network
+
+volumes:
+  sql-data:
+
+networks:
+  app-network:
+    driver: bridge
