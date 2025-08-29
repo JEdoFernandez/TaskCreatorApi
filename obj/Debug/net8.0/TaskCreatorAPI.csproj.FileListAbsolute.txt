@@ -147,6 +147,7 @@ C:\Projectos\AA\Desarrollo Web en Entorno Servidor\TaskCreatorAPI\obj\Debug\net8
 C:\Projectos\AA\Desarrollo Web en Entorno Servidor\TaskCreatorAPI\obj\Debug\net8.0\TaskCreatorAPI.csproj.CoreCompileInputs.cache
 C:\Projectos\AA\Desarrollo Web en Entorno Servidor\TaskCreatorAPI\obj\Debug\net8.0\TaskCreatorAPI.MvcApplicationPartsAssemblyInfo.cs
 C:\Projectos\AA\Desarrollo Web en Entorno Servidor\TaskCreatorAPI\obj\Debug\net8.0\TaskCreatorAPI.MvcApplicationPartsAssemblyInfo.cache
+C:\Projectos\AA\Desarrollo Web en Entorno Servidor\TaskCreatorAPI\obj\Debug\net8.0\TaskCreatorAPI.sourcelink.json
 C:\Projectos\AA\Desarrollo Web en Entorno Servidor\TaskCreatorAPI\obj\Debug\net8.0\staticwebassets.build.json
 C:\Projectos\AA\Desarrollo Web en Entorno Servidor\TaskCreatorAPI\obj\Debug\net8.0\staticwebassets.development.json
 C:\Projectos\AA\Desarrollo Web en Entorno Servidor\TaskCreatorAPI\obj\Debug\net8.0\staticwebassets\msbuild.TaskCreatorAPI.Microsoft.AspNetCore.StaticWebAssets.props
