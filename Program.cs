@@ -9,32 +9,29 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Conexión a base de datos - SQLite con ruta absoluta para debugging
+// Configuración de la base de datos SQLite con ruta absoluta
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
-    // Ruta absoluta para evitar problemas de permisos
     var dbPath = Path.Combine(Directory.GetCurrentDirectory(), "TaskCreatorDB.db");
-    Console.WriteLine($"📁 Database path: {dbPath}");
-    
     options.UseSqlite($"Data Source={dbPath}");
-    options.EnableSensitiveDataLogging(); // Para ver queries SQL
-    options.EnableDetailedErrors(); // Para errores detallados
+    options.EnableSensitiveDataLogging();
+    options.EnableDetailedErrors();
 });
 
-// CORS
+// Configuración de CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
         policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
 });
 
-// Repositorios
+// Registro de repositorios
 builder.Services.AddScoped<UsuarioRepository>();
 builder.Services.AddScoped<TareaRepository>();
 builder.Services.AddScoped<TareaPublicaRepository>();
 builder.Services.AddScoped<TareaPublicaCompletadaRepository>();
 
-// Servicios
+// Registro de servicios
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<UsuarioService>();
 builder.Services.AddScoped<TareaService>();
@@ -44,7 +41,7 @@ builder.Services.AddScoped<TareaPublicaCompletadaService>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
-// Swagger con autenticación JWT
+// Configuración de Swagger con autenticación JWT
 builder.Services.AddSwaggerGen(opt =>
 {
     opt.SwaggerDoc("v1", new OpenApiInfo { Title = "TaskCreator API", Version = "v1" });
@@ -75,7 +72,7 @@ builder.Services.AddSwaggerGen(opt =>
     });
 });
 
-// JWT
+// Configuración de autenticación JWT
 var jwtConfig = builder.Configuration.GetSection("JwtSettings");
 var claveSecreta = jwtConfig["SecretKey"];
 
@@ -99,7 +96,7 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// Autorización
+// Configuración de autorización con roles
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
@@ -108,10 +105,10 @@ builder.Services.AddAuthorization(options =>
 
 var app = builder.Build();
 
-// CORS
+// Middleware de CORS
 app.UseCors("AllowAll");
 
-// Swagger solo en desarrollo
+// Middleware de Swagger solo en desarrollo
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -119,163 +116,67 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.UseAuthentication();
 app.UseAuthorization();
 
-// 🔍 DEBUG DETALLADO DE LA BASE DE DATOS
-Console.WriteLine("🚀 Iniciando aplicación TaskCreatorAPI");
-Console.WriteLine("🔍 Debug: Información del sistema...");
-Console.WriteLine($"📁 Directorio actual: {Directory.GetCurrentDirectory()}");
-Console.WriteLine($"📁 Usuario: {Environment.UserName}");
-
+// Inicialización de la base de datos al iniciar la aplicación
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     
-    Console.WriteLine("🔍 Debug: Obteniendo información de la base de datos...");
-    
     try
     {
-        var connection = db.Database.GetDbConnection();
-        var dataSource = connection.DataSource;
-        var fullPath = Path.GetFullPath(dataSource);
+        // Obtener la ruta completa de la base de datos
+        var dbPath = db.Database.GetDbConnection().DataSource;
+        var fullPath = Path.GetFullPath(dbPath);
         
-        Console.WriteLine($"📁 DataSource: {dataSource}");
-        Console.WriteLine($"📁 Full Path: {fullPath}");
-        Console.WriteLine($"📁 Directory: {Path.GetDirectoryName(fullPath)}");
-        Console.WriteLine($"📁 File Exists: {File.Exists(fullPath)}");
-        
-        // Verificar si el directorio existe
+        // Asegurar que el directorio existe
         var directory = Path.GetDirectoryName(fullPath);
         if (!Directory.Exists(directory) && directory != null)
         {
-            Console.WriteLine($"📁 Creando directorio: {directory}");
             Directory.CreateDirectory(directory);
         }
         
-        // Verificar permisos de escritura
-        try
-        {
-            var testFile = Path.Combine(directory ?? Directory.GetCurrentDirectory(), "test_write.txt");
-            File.WriteAllText(testFile, "test");
-            File.Delete(testFile);
-            Console.WriteLine("✅ Permisos de escritura: OK");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"❌ Permisos de escritura: ERROR - {ex.Message}");
-        }
-        
-        Console.WriteLine("🛠️ Intentando EnsureCreated...");
+        // Crear la base de datos y tablas si no existen
         var created = db.Database.EnsureCreated();
         
-        Console.WriteLine($"✅ EnsureCreated result: {created}");
-        Console.WriteLine($"📁 File exists after EnsureCreated: {File.Exists(fullPath)}");
-        
-        if (File.Exists(fullPath))
+        if (created)
         {
-            var fileInfo = new FileInfo(fullPath);
-            Console.WriteLine($"📁 File size: {fileInfo.Length} bytes");
-            Console.WriteLine($"📁 Created: {fileInfo.CreationTime}");
-            
-            // Verificar que las tablas se crearon
-            try
-            {
-                var usuarioCount = db.Usuarios.Count();
-                Console.WriteLine($"✅ Tabla Usuarios: OK ({usuarioCount} registros)");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"❌ Error accediendo a tabla Usuarios: {ex.Message}");
-                
-                // Intentar crear tablas manualmente
-                Console.WriteLine("🛠️ Intentando crear tablas manualmente...");
-                try
-                {
-                    db.Database.ExecuteSqlRaw(@"
-                        CREATE TABLE IF NOT EXISTS Usuarios (
-                            Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                            Nombre TEXT NOT NULL,
-                            Email TEXT NOT NULL,
-                            Contraseña TEXT NOT NULL,
-                            FechaRegistro TEXT NOT NULL,
-                            Activo INTEGER NOT NULL,
-                            Rol TEXT NOT NULL
-                        )");
-                    Console.WriteLine("✅ Tabla Usuarios creada manualmente");
-                }
-                catch (Exception manualEx)
-                {
-                    Console.WriteLine($"❌ Error creando tabla manualmente: {manualEx.Message}");
-                }
-            }
+            Console.WriteLine("Base de datos y tablas creadas exitosamente");
         }
         else
         {
-            Console.WriteLine("❌ El archivo de base de datos NO se creó");
-            
-            // Intentar crear el archivo manualmente
-            try
-            {
-                Console.WriteLine("🛠️ Creando archivo de BD manualmente...");
-                File.WriteAllBytes(fullPath, new byte[0]);
-                Console.WriteLine("✅ Archivo creado manualmente");
-                
-                // Intentar EnsureCreated again
-                created = db.Database.EnsureCreated();
-                Console.WriteLine($"✅ EnsureCreated después de creación manual: {created}");
-            }
-            catch (Exception fileEx)
-            {
-                Console.WriteLine($"❌ Error creando archivo manualmente: {fileEx.Message}");
-                
-                // Probar con ruta alternativa
-                var altPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TaskCreatorDB.db");
-                Console.WriteLine($"🔄 Probando ruta alternativa: {altPath}");
-                
-                try
-                {
-                    var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
-                    optionsBuilder.UseSqlite($"Data Source={altPath}");
-                    
-                    using var tempDb = new AppDbContext(optionsBuilder.Options);
-                    tempDb.Database.EnsureCreated();
-                    Console.WriteLine($"✅ Base de datos creada en ubicación alternativa: {altPath}");
-                }
-                catch (Exception altEx)
-                {
-                    Console.WriteLine($"❌ Error en ubicación alternativa: {altEx.Message}");
-                }
-            }
+            Console.WriteLine("Base de datos ya existe");
         }
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"💥 ERROR: {ex.Message}");
-        Console.WriteLine($"💥 StackTrace: {ex.StackTrace}");
+        Console.WriteLine($"Error inicializando la base de datos: {ex.Message}");
         
-        if (ex.InnerException != null)
+        // Fallback: intentar crear tablas manualmente si EnsureCreated falla
+        try
         {
-            Console.WriteLine($"💥 Inner Exception: {ex.InnerException.Message}");
+            db.Database.ExecuteSqlRaw(@"
+                CREATE TABLE IF NOT EXISTS Usuarios (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    Nombre TEXT NOT NULL,
+                    Email TEXT NOT NULL,
+                    Contraseña TEXT NOT NULL,
+                    FechaRegistro TEXT NOT NULL,
+                    Activo INTEGER NOT NULL,
+                    Rol TEXT NOT NULL
+                )");
+                
+            Console.WriteLine("Tabla Usuarios creada manualmente");
+        }
+        catch (Exception manualEx)
+        {
+            Console.WriteLine($"Error creando tabla manualmente: {manualEx.Message}");
         }
     }
 }
 
+// Mapeo de controladores
 app.MapControllers();
 
-// Middleware para mostrar información de la BD en cada request (solo desarrollo)
-if (app.Environment.IsDevelopment())
-{
-    app.Use(async (context, next) =>
-    {
-        var dbPath = Path.Combine(Directory.GetCurrentDirectory(), "TaskCreatorDB.db");
-        context.Response.Headers.Append("X-DB-Path", dbPath);
-        context.Response.Headers.Append("X-DB-Exists", File.Exists(dbPath).ToString());
-        
-        await next();
-    });
-}
-
-Console.WriteLine("🎯 Aplicación iniciada. Presiona Ctrl+C para detener.");
 app.Run();
