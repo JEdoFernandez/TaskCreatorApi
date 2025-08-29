@@ -27,7 +27,7 @@ namespace TaskCreatorAPI.Services
             return GenerateJwtToken(usuario);
         }
 
-        public void Register(string nombre, string email, string contraseña)
+        public void Register(string nombre, string email, string contraseña, string rol = "User")
         {
             var usuarioExistente = _usuarioRepository.GetByNombreAsync(nombre).Result;
             if (usuarioExistente != null)
@@ -40,7 +40,7 @@ namespace TaskCreatorAPI.Services
                 Contraseña = contraseña,
                 FechaRegistro = DateTime.Now,
                 Activo = true,
-                Rol = "User" // Rol por defecto
+                Rol = rol // Usar el rol proporcionado
             };
 
             _usuarioRepository.AddAsync(nuevoUsuario).Wait();

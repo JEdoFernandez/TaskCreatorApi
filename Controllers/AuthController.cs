@@ -34,7 +34,7 @@ namespace TaskCreatorAPI.Controllers
         {
             try
             {
-                _authService.Register(dto.Nombre, dto.Email, dto.Contraseña);
+                _authService.Register(dto.Nombre, dto.Email, dto.Contraseña, dto.Rol);
                 return Ok(new { mensaje = "Usuario registrado correctamente" });
             }
             catch (ArgumentException ex)
