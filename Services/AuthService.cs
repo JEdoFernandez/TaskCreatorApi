@@ -37,10 +37,10 @@ namespace TaskCreatorAPI.Services
             {
                 Nombre = nombre,
                 Email = email,
-                Contraseña = contraseña,
+                Contraseña = contraseña, // Sin hash (solo desarrollo)
                 FechaRegistro = DateTime.Now,
                 Activo = true,
-                Rol = rol // Usar el rol proporcionado
+                Rol = rol
             };
 
             _usuarioRepository.AddAsync(nuevoUsuario).Wait();
@@ -55,14 +55,15 @@ namespace TaskCreatorAPI.Services
                 new Claim(ClaimTypes.Role, usuario.Rol)
             };
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:SecretKey"]));
+            var jwtSettings = _configuration.GetSection("JwtSettings");
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["SecretKey"]));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var token = new JwtSecurityToken(
-                issuer: _configuration["JwtSettings:Issuer"],
-                audience: _configuration["JwtSettings:Audience"],
+                issuer: jwtSettings["Issuer"],
+                audience: jwtSettings["Audience"],
                 claims: claims,
-                expires: DateTime.Now.AddMinutes(Convert.ToDouble(_configuration["JwtSettings:ExpiryInMinutes"])),
+                expires: DateTime.Now.AddMinutes(Convert.ToDouble(jwtSettings["ExpiryInMinutes"])),
                 signingCredentials: creds
             );
 

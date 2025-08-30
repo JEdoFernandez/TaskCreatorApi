@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using TaskCreatorAPI.Services;
 using TaskCreatorAPI.Models;
+using TaskCreatorAPI.Models.DTOs;
 
 namespace TaskCreatorAPI.Controllers
 {
@@ -18,40 +19,47 @@ namespace TaskCreatorAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<List<Usuario>>> Get()
+        public async Task<ActionResult<List<Usuario>>> GetAll()
         {
             var usuarios = await _service.GetAllAsync();
             return Ok(usuarios);
         }
 
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Usuario>> GetById(int id)
+        // 🔥 SOLO ENDPOINTS POR NOMBRE
+        [HttpGet("nombre/{nombre}")]
+        public async Task<ActionResult<Usuario>> GetByNombre(string nombre)
         {
-            var usuario = await _service.GetByIdAsync(id);
-            if (usuario == null) return NotFound();
+            var usuario = await _service.GetByNombreAsync(nombre);
+            if (usuario == null) return NotFound(new { mensaje = $"Usuario '{nombre}' no encontrado" });
             return Ok(usuario);
         }
 
-        [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] Usuario usuario)
+        [HttpPut("nombre/{nombre}")]
+        public async Task<IActionResult> UpdateByNombre(string nombre, [FromBody] UsuarioUpdateDTO dto)
         {
-            if (id != usuario.Id) return BadRequest();
-            
-            var existente = await _service.GetByIdAsync(id);
-            if (existente == null) return NotFound();
-
-            await _service.UpdateAsync(usuario);
-            return NoContent();
+            var actualizado = await _service.UpdateByNombreAsync(nombre, dto);
+            if (!actualizado) return NotFound(new { mensaje = $"Usuario '{nombre}' no encontrado" });
+            return Ok(new { mensaje = $"Usuario '{nombre}' actualizado correctamente" });
         }
 
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        [HttpDelete("nombre/{nombre}")]
+        public async Task<IActionResult> DeleteByNombre(string nombre)
         {
-            var usuario = await _service.GetByIdAsync(id);
-            if (usuario == null) return NotFound();
+            var eliminado = await _service.DeleteByNombreAsync(nombre);
+            if (!eliminado) return NotFound(new { mensaje = $"Usuario '{nombre}' no encontrado" });
+            return Ok(new { mensaje = $"Usuario '{nombre}' eliminado correctamente" });
+        }
 
-            await _service.DeleteAsync(id);
-            return NoContent();
+        // 🔥 ENDPOINT EXTRA: Buscar usuarios por coincidencia de nombre
+        [HttpGet("buscar/{termino}")]
+        public async Task<ActionResult<List<Usuario>>> BuscarUsuarios(string termino)
+        {
+            var todosUsuarios = await _service.GetAllAsync();
+            var usuariosFiltrados = todosUsuarios
+                .Where(u => u.Nombre.Contains(termino, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            
+            return Ok(usuariosFiltrados);
         }
     }
 }
