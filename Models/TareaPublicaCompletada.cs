@@ -7,9 +7,8 @@ namespace TaskCreatorAPI.Models
         public string Descripcion { get; set; }
         public string UsuarioNombre { get; set; }
         public DateTime FechaCompletado { get; set; }
-        public int PuntosObtenidos { get; set; }
         public int TareaPublicaId { get; set; }
+        
 
-        public TareaPublica TareaPublica { get; set; }
     }
 }

@@ -14,16 +14,13 @@ namespace TaskCreatorAPI.Data.Repositories
 
         public async Task<List<TareaPublicaCompletada>> GetAllAsync()
         {
-            return await _context.TareasPublicasCompletadas
-                .Include(t => t.TareaPublica)
-                .ToListAsync();
+            return await _context.TareasPublicasCompletadas.ToListAsync();
         }
 
         public async Task<List<TareaPublicaCompletada>> GetByUsuarioNombreAsync(string usuarioNombre)
         {
             return await _context.TareasPublicasCompletadas
                 .Where(t => t.UsuarioNombre == usuarioNombre)
-                .Include(t => t.TareaPublica)
                 .ToListAsync();
         }
 
@@ -38,6 +35,29 @@ namespace TaskCreatorAPI.Data.Repositories
         {
             return await _context.TareasPublicasCompletadas
                 .AnyAsync(t => t.TareaPublicaId == tareaPublicaId && t.UsuarioNombre == usuarioNombre);
+        }
+
+        public async Task<TareaPublicaCompletada> GetByUsuarioYTareaAsync(int tareaPublicaId, string usuarioNombre)
+        {
+            return await _context.TareasPublicasCompletadas
+                .FirstOrDefaultAsync(t => t.TareaPublicaId == tareaPublicaId && t.UsuarioNombre == usuarioNombre);
+        }
+
+        public async Task<List<TareaPublicaCompletada>> GetByTareaIdAsync(int tareaPublicaId)
+        {
+            return await _context.TareasPublicasCompletadas
+                .Where(t => t.TareaPublicaId == tareaPublicaId)
+                .ToListAsync();
+        }
+
+        public async Task<bool> DeleteAsync(int id)
+        {
+            var completada = await _context.TareasPublicasCompletadas.FindAsync(id);
+            if (completada == null) return false;
+
+            _context.TareasPublicasCompletadas.Remove(completada);
+            await _context.SaveChangesAsync();
+            return true;
         }
     }
 }

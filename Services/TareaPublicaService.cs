@@ -27,7 +27,7 @@ namespace TaskCreatorAPI.Services
         public async Task<TareaPublica> CreateAsync(TareaPublica tareaPublica)
         {
             tareaPublica.FechaPublicacion = DateTime.Now;
-            tareaPublica.VecesCompletada = 0;
+            tareaPublica.Completada = false;
             return await _repository.AddAsync(tareaPublica);
         }
 
@@ -48,7 +48,7 @@ namespace TaskCreatorAPI.Services
 
         public async Task<bool> MarcarComoCompletadaAsync(int tareaPublicaId, string usuarioNombre)
         {
-            // Verificar si ya fue completada
+            // Verificar si ya fue completada por este usuario
             if (await _completadaRepository.ExisteCompletadaAsync(tareaPublicaId, usuarioNombre))
                 return false;
 
@@ -62,12 +62,36 @@ namespace TaskCreatorAPI.Services
                 Descripcion = tareaPublica.Descripcion,
                 UsuarioNombre = usuarioNombre,
                 FechaCompletado = DateTime.Now,
-                PuntosObtenidos = tareaPublica.Dificultad * 10, // 10 puntos por nivel de dificultad
                 TareaPublicaId = tareaPublicaId
             };
 
             await _completadaRepository.AddAsync(tareaCompletada);
-            await _repository.IncrementarVecesCompletadaAsync(tareaPublicaId);
+            
+            // 🔄 Actualizar el estado de completada
+            tareaPublica.Completada = true;
+            await _repository.UpdateAsync(tareaPublica);
+
+            return true;
+        }
+
+        public async Task<bool> DesmarcarComoCompletadaAsync(int tareaPublicaId, string usuarioNombre)
+        {
+            var completada = await _completadaRepository.GetByUsuarioYTareaAsync(tareaPublicaId, usuarioNombre);
+            if (completada == null) return false;
+
+            await _completadaRepository.DeleteAsync(completada.Id);
+
+            // Verificar si hay otras completadas para esta tarea
+            var otrasCompletadas = await _completadaRepository.GetByTareaIdAsync(tareaPublicaId);
+            if (!otrasCompletadas.Any())
+            {
+                var tareaPublica = await _repository.GetByIdAsync(tareaPublicaId);
+                if (tareaPublica != null)
+                {
+                    tareaPublica.Completada = false;
+                    await _repository.UpdateAsync(tareaPublica);
+                }
+            }
 
             return true;
         }

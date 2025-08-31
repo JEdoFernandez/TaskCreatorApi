@@ -52,15 +52,5 @@ namespace TaskCreatorAPI.Data.Repositories
                 .Where(t => t.Titulo.Contains(titulo))
                 .ToListAsync();
         }
-
-        public async Task IncrementarVecesCompletadaAsync(int id)
-        {
-            var tareaPublica = await _context.TareasPublicas.FindAsync(id);
-            if (tareaPublica != null)
-            {
-                tareaPublica.VecesCompletada++;
-                await _context.SaveChangesAsync();
-            }
-        }
     }
 }
