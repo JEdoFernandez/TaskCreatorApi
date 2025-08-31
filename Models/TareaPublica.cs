@@ -8,11 +8,9 @@ namespace TaskCreatorAPI.Models
         public string PublicadoPor { get; set; }
         public DateTime FechaPublicacion { get; set; }
         public bool Recomendado { get; set; }
-        public int Prioridad { get; set; } 
-        public int TiempoEstimado { get; set; } 
+        public int Prioridad { get; set; } // 1-5
         public string Categoria { get; set; }
         public bool Completada { get; set; } = false;
-        
-    
+        public DateTime? FechaCompletado { get; set; } // ✅ Nuevo campo
     }
 }

@@ -28,6 +28,7 @@ namespace TaskCreatorAPI.Services
         {
             tareaPublica.FechaPublicacion = DateTime.Now;
             tareaPublica.Completada = false;
+            tareaPublica.FechaCompletado = null;
             return await _repository.AddAsync(tareaPublica);
         }
 
@@ -55,6 +56,10 @@ namespace TaskCreatorAPI.Services
             var tareaPublica = await _repository.GetByIdAsync(tareaPublicaId);
             if (tareaPublica == null) return false;
 
+            // Actualizar estado y fecha de completado
+            tareaPublica.Completada = true;
+            tareaPublica.FechaCompletado = DateTime.Now;
+
             // Crear registro de completada
             var tareaCompletada = new TareaPublicaCompletada
             {
@@ -66,9 +71,6 @@ namespace TaskCreatorAPI.Services
             };
 
             await _completadaRepository.AddAsync(tareaCompletada);
-            
-            // 🔄 Actualizar el estado de completada
-            tareaPublica.Completada = true;
             await _repository.UpdateAsync(tareaPublica);
 
             return true;
@@ -89,6 +91,7 @@ namespace TaskCreatorAPI.Services
                 if (tareaPublica != null)
                 {
                     tareaPublica.Completada = false;
+                    tareaPublica.FechaCompletado = null;
                     await _repository.UpdateAsync(tareaPublica);
                 }
             }

@@ -22,24 +22,55 @@ namespace TaskCreatorAPI.Controllers
 
         [HttpGet]
         [AllowAnonymous]
-        public async Task<ActionResult<List<TareaPublica>>> Get()
+        public async Task<ActionResult<List<object>>> Get()
         {
             var tareas = await _service.GetAllAsync();
-            return Ok(tareas);
+            var tareasFormateadas = tareas.Select(t => new 
+            {
+                t.Id,
+                t.Titulo,
+                t.Descripcion,
+                t.PublicadoPor,
+                FechaPublicacion = t.FechaPublicacion.ToString("dd-MM-yyyy HH:mm:ss"),
+                t.Recomendado,
+                t.Prioridad,
+                t.Categoria,
+                t.Completada,
+                FechaCompletado = t.FechaCompletado.HasValue ? t.FechaCompletado.Value.ToString("dd-MM-yyyy HH:mm:ss") : null
+            }).ToList();
+            
+            return Ok(tareasFormateadas);
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("titulo/{titulo}")]
         [AllowAnonymous]
-        public async Task<ActionResult<TareaPublica>> GetById(int id)
+        public async Task<ActionResult<object>> GetByTitulo(string titulo)
         {
-            var tarea = await _service.GetByIdAsync(id);
-            if (tarea == null) return NotFound(new { mensaje = $"Tarea pública con ID {id} no encontrada" });
-            return Ok(tarea);
+            var tareas = await _service.BuscarPorTituloAsync(titulo);
+            var tarea = tareas.FirstOrDefault();
+            
+            if (tarea == null) return NotFound(new { mensaje = $"Tarea pública '{titulo}' no encontrada" });
+            
+            var tareaFormateada = new 
+            {
+                tarea.Id,
+                tarea.Titulo,
+                tarea.Descripcion,
+                tarea.PublicadoPor,
+                FechaPublicacion = tarea.FechaPublicacion.ToString("dd-MM-yyyy HH:mm:ss"),
+                tarea.Recomendado,
+                tarea.Prioridad,
+                tarea.Categoria,
+                tarea.Completada,
+                FechaCompletado = tarea.FechaCompletado.HasValue ? tarea.FechaCompletado.Value.ToString("dd-MM-yyyy HH:mm:ss") : null
+            };
+            
+            return Ok(tareaFormateada);
         }
 
         [HttpPost]
         [Authorize(Roles = "User,Admin")]
-        public async Task<ActionResult<TareaPublica>> Create([FromBody] TareaPublicaCreateDTO dto)
+        public async Task<ActionResult<object>> Create([FromBody] TareaPublicaCreateDTO dto)
         {
             var usuarioNombre = User.FindFirst(ClaimTypes.Name)?.Value;
             
@@ -47,37 +78,51 @@ namespace TaskCreatorAPI.Controllers
             {
                 Titulo = dto.Titulo,
                 Descripcion = dto.Descripcion,
-                Prioridad = dto.Prioridad, // ✅ Cambiado de Dificultad a Prioridad
-                TiempoEstimado = dto.TiempoEstimado,
+                Prioridad = dto.Prioridad,
                 Categoria = dto.Categoria,
                 PublicadoPor = usuarioNombre,
                 Recomendado = false,
-                Completada = false // ✅ Siempre false al crearse
+                Completada = false,
+                FechaCompletado = null
             };
 
             var creada = await _service.CreateAsync(tareaPublica);
-            return CreatedAtAction(nameof(GetById), new { id = creada.Id }, creada);
+            
+            var respuesta = new 
+            {
+                creada.Id,
+                creada.Titulo,
+                creada.Descripcion,
+                creada.PublicadoPor,
+                FechaPublicacion = creada.FechaPublicacion.ToString("dd-MM-yyyy HH:mm:ss"),
+                creada.Recomendado,
+                creada.Prioridad,
+                creada.Categoria,
+                creada.Completada,
+                FechaCompletado = creada.FechaCompletado.HasValue ? creada.FechaCompletado.Value.ToString("dd-MM-yyyy HH:mm:ss") : null
+            };
+            
+            return CreatedAtAction(nameof(GetByTitulo), new { titulo = creada.Titulo }, respuesta);
         }
 
-        [HttpPut("{id}")]
+        [HttpPut("titulo/{titulo}")]
         [Authorize(Roles = "User,Admin")]
-        public async Task<IActionResult> Update(int id, [FromBody] TareaPublicaCreateDTO dto)
+        public async Task<IActionResult> Update(string titulo, [FromBody] TareaPublicaCreateDTO dto)
         {
-            var tareaExistente = await _service.GetByIdAsync(id);
-            if (tareaExistente == null) return NotFound(new { mensaje = $"Tarea pública con ID {id} no encontrada" });
+            var tareas = await _service.BuscarPorTituloAsync(titulo);
+            var tareaExistente = tareas.FirstOrDefault();
+            
+            if (tareaExistente == null) return NotFound(new { mensaje = $"Tarea pública '{titulo}' no encontrada" });
 
-            // Verificar que el usuario es el propietario o admin
             var usuarioNombre = User.FindFirst(ClaimTypes.Name)?.Value;
             var usuarioRol = User.FindFirst(ClaimTypes.Role)?.Value;
             
             if (tareaExistente.PublicadoPor != usuarioNombre && usuarioRol != "Admin")
                 return Forbid();
 
-            // Actualizar propiedades
             tareaExistente.Titulo = dto.Titulo;
             tareaExistente.Descripcion = dto.Descripcion;
-            tareaExistente.Prioridad = dto.Prioridad; // ✅ Cambiado de Dificultad a Prioridad
-            tareaExistente.TiempoEstimado = dto.TiempoEstimado;
+            tareaExistente.Prioridad = dto.Prioridad;
             tareaExistente.Categoria = dto.Categoria;
 
             var actualizada = await _service.UpdateAsync(tareaExistente);
@@ -86,35 +131,41 @@ namespace TaskCreatorAPI.Controllers
             return Ok(new { mensaje = "Tarea pública actualizada correctamente" });
         }
 
-        [HttpDelete("{id}")]
+        [HttpDelete("titulo/{titulo}")]
         [Authorize(Roles = "User,Admin")]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> Delete(string titulo)
         {
-            var tareaExistente = await _service.GetByIdAsync(id);
-            if (tareaExistente == null) return NotFound(new { mensaje = $"Tarea pública con ID {id} no encontrada" });
+            var tareas = await _service.BuscarPorTituloAsync(titulo);
+            var tareaExistente = tareas.FirstOrDefault();
+            
+            if (tareaExistente == null) return NotFound(new { mensaje = $"Tarea pública '{titulo}' no encontrada" });
 
-            // Verificar que el usuario es el propietario o admin
             var usuarioNombre = User.FindFirst(ClaimTypes.Name)?.Value;
             var usuarioRol = User.FindFirst(ClaimTypes.Role)?.Value;
             
             if (tareaExistente.PublicadoPor != usuarioNombre && usuarioRol != "Admin")
                 return Forbid();
 
-            var eliminada = await _service.DeleteAsync(id);
+            var eliminada = await _service.DeleteAsync(tareaExistente.Id);
             if (!eliminada) return StatusCode(500, new { mensaje = "Error al eliminar la tarea" });
 
             return Ok(new { mensaje = "Tarea pública eliminada correctamente" });
         }
 
-        [HttpPost("{id}/completar")]
+        [HttpPost("titulo/{titulo}/completar")]
         [Authorize(Roles = "User,Admin")]
-        public async Task<IActionResult> Completar(int id)
+        public async Task<IActionResult> Completar(string titulo)
         {
+            var tareas = await _service.BuscarPorTituloAsync(titulo);
+            var tarea = tareas.FirstOrDefault();
+            
+            if (tarea == null) return NotFound(new { mensaje = $"Tarea pública '{titulo}' no encontrada" });
+
             var usuarioNombre = User.FindFirst(ClaimTypes.Name)?.Value;
             
-            var completada = await _service.MarcarComoCompletadaAsync(id, usuarioNombre);
+            var completada = await _service.MarcarComoCompletadaAsync(tarea.Id, usuarioNombre);
             if (!completada) return BadRequest(new { 
-                mensaje = "Ya has completado esta tara o no existe" 
+                mensaje = "Ya has completado esta tarea o no existe" 
             });
 
             return Ok(new { 
@@ -123,98 +174,79 @@ namespace TaskCreatorAPI.Controllers
             });
         }
 
-        [HttpPost("{id}/descompletar")]
-        [Authorize(Roles = "User,Admin")]
-        public async Task<IActionResult> Descompletar(int id)
-        {
-            var usuarioNombre = User.FindFirst(ClaimTypes.Name)?.Value;
-            
-            var descompletada = await _service.DesmarcarComoCompletadaAsync(id, usuarioNombre);
-            if (!descompletada) return BadRequest(new { 
-                mensaje = "No habías completado esta tarea o no existe" 
-            });
-
-            return Ok(new { 
-                mensaje = "Tarea descompletada correctamente",
-                completada = false 
-            });
-        }
-
         [HttpGet("completadas")]
         [AllowAnonymous]
-        public async Task<ActionResult<List<TareaPublicaCompletada>>> GetCompletadas()
+        public async Task<ActionResult<List<object>>> GetCompletadas()
         {
             var completadas = await _completadaService.GetAllAsync();
-            return Ok(completadas);
+            var completadasFormateadas = completadas.Select(c => new 
+            {
+                c.Id,
+                c.Titulo,
+                c.Descripcion,
+                c.UsuarioNombre,
+                FechaCompletado = c.FechaCompletado.ToString("dd-MM-yyyy HH:mm:ss"),
+                c.TareaPublicaId
+            }).ToList();
+            
+            return Ok(completadasFormateadas);
         }
 
         [HttpGet("mis-completadas")]
         [Authorize(Roles = "User,Admin")]
-        public async Task<ActionResult<List<TareaPublicaCompletada>>> GetMisCompletadas()
+        public async Task<ActionResult<List<object>>> GetMisCompletadas()
         {
             var usuarioNombre = User.FindFirst(ClaimTypes.Name)?.Value;
             var completadas = await _completadaService.GetByUsuarioNombreAsync(usuarioNombre);
-            return Ok(completadas);
+            
+            var completadasFormateadas = completadas.Select(c => new 
+            {
+                c.Id,
+                c.Titulo,
+                c.Descripcion,
+                c.UsuarioNombre,
+                FechaCompletado = c.FechaCompletado.ToString("dd-MM-yyyy HH:mm:ss"),
+                c.TareaPublicaId
+            }).ToList();
+            
+            return Ok(completadasFormateadas);
         }
 
-        [HttpGet("buscar/{titulo}")]
+        [HttpGet("buscar")]
         [AllowAnonymous]
-        public async Task<ActionResult<List<TareaPublica>>> Buscar(string titulo)
-        {
-            var tareas = await _service.BuscarPorTituloAsync(titulo);
-            return Ok(tareas);
-        }
-
-        // ✅ NUEVO ENDPOINT: Obtener tareas públicas de un usuario específico
-        [HttpGet("usuario/{nombreUsuario}")]
-        [AllowAnonymous]
-        public async Task<ActionResult<List<TareaPublica>>> GetByUsuario(string nombreUsuario)
-        {
-            var todasTareas = await _service.GetAllAsync();
-            var tareasUsuario = todasTareas
-                .Where(t => t.PublicadoPor.Equals(nombreUsuario, StringComparison.OrdinalIgnoreCase))
-                .ToList();
-
-            return Ok(tareasUsuario);
-        }
-
-        // ✅ NUEVO ENDPOINT: Obtener tareas por categoría
-        [HttpGet("categoria/{categoria}")]
-        [AllowAnonymous]
-        public async Task<ActionResult<List<TareaPublica>>> GetByCategoria(string categoria)
+        public async Task<ActionResult<List<object>>> Buscar(
+            [FromQuery] string? titulo = null, 
+            [FromQuery] int? prioridad = null)
         {
             var todasTareas = await _service.GetAllAsync();
-            var tareasCategoria = todasTareas
-                .Where(t => t.Categoria.Equals(categoria, StringComparison.OrdinalIgnoreCase))
-                .ToList();
+            var tareasFiltradas = todasTareas.AsQueryable();
 
-            return Ok(tareasCategoria);
-        }
+            if (!string.IsNullOrEmpty(titulo))
+            {
+                tareasFiltradas = tareasFiltradas.Where(t => 
+                    t.Titulo.Contains(titulo, StringComparison.OrdinalIgnoreCase));
+            }
 
-        // ✅ NUEVO ENDPOINT: Obtener tareas por prioridad
-        [HttpGet("prioridad/{prioridad}")]
-        [AllowAnonymous]
-        public async Task<ActionResult<List<TareaPublica>>> GetByPrioridad(int prioridad)
-        {
-            var todasTareas = await _service.GetAllAsync();
-            var tareasPrioridad = todasTareas
-                .Where(t => t.Prioridad == prioridad)
-                .ToList();
+            if (prioridad.HasValue)
+            {
+                tareasFiltradas = tareasFiltradas.Where(t => t.Prioridad == prioridad.Value);
+            }
 
-            return Ok(tareasPrioridad);
-        }
+            var tareasFormateadas = tareasFiltradas.Select(t => new 
+            {
+                t.Id,
+                t.Titulo,
+                t.Descripcion,
+                t.PublicadoPor,
+                FechaPublicacion = t.FechaPublicacion.ToString("dd-MM-yyyy HH:mm:ss"),
+                t.Recomendado,
+                t.Prioridad,
+                t.Categoria,
+                t.Completada,
+                FechaCompletado = t.FechaCompletado.HasValue ? t.FechaCompletado.Value.ToString("dd-MM-yyyy HH:mm:ss") : null
+            }).ToList();
 
-        // ✅ NUEVO ENDPOINT: Obtener tareas completadas/incompletas
-        [HttpGet("estado/{completada}")]
-        [AllowAnonymous]
-        public async Task<ActionResult<List<TareaPublica>>> GetByEstado(bool completada)
-        {
-            var todasTareas = await _service.GetAllAsync();
-            var tareasEstado = todasTareas
-                .Where(t => t.Completada == completada)
-                .ToList();
-
-            return Ok(tareasEstado);
+            return Ok(tareasFormateadas);
         }
     }
 }
