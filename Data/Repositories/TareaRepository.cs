@@ -12,24 +12,24 @@ namespace TaskCreatorAPI.Data.Repositories
             _context = context;
         }
 
-        public async Task<List<Tarea>> GetByUsuarioIdAsync(int usuarioId)
+        public async Task<List<Tarea>> GetByUsuarioNombreAsync(string usuarioNombre)
         {
             return await _context.Tareas
-                .Where(t => t.UsuarioId == usuarioId)
+                .Where(t => t.UsuarioNombre == usuarioNombre)
                 .ToListAsync();
         }
 
-        public async Task<List<Tarea>> GetPendientesByUsuarioIdAsync(int usuarioId)
+        public async Task<List<Tarea>> GetPendientesByUsuarioNombreAsync(string usuarioNombre)
         {
             return await _context.Tareas
-                .Where(t => t.UsuarioId == usuarioId && !t.Completada)
+                .Where(t => t.UsuarioNombre == usuarioNombre && !t.Completada)
                 .ToListAsync();
         }
 
-        public async Task<List<Tarea>> GetCompletadasByUsuarioIdAsync(int usuarioId)
+        public async Task<List<Tarea>> GetCompletadasByUsuarioNombreAsync(string usuarioNombre)
         {
             return await _context.Tareas
-                .Where(t => t.UsuarioId == usuarioId && t.Completada)
+                .Where(t => t.UsuarioNombre == usuarioNombre && t.Completada)
                 .ToListAsync();
         }
 
@@ -62,11 +62,28 @@ namespace TaskCreatorAPI.Data.Repositories
             return true;
         }
 
-        public async Task<List<Tarea>> BuscarPorTituloAsync(int usuarioId, string titulo)
+        public async Task<List<Tarea>> BuscarPorTituloAsync(string usuarioNombre, string titulo)
         {
             return await _context.Tareas
-                .Where(t => t.UsuarioId == usuarioId && t.Titulo.Contains(titulo))
+                .Where(t => t.UsuarioNombre == usuarioNombre && t.Titulo.Contains(titulo))
                 .ToListAsync();
+        }
+
+        public async Task<List<Tarea>> BuscarPorTituloYPrioridadAsync(string usuarioNombre, string titulo = null, int? prioridad = null)
+        {
+            var query = _context.Tareas.Where(t => t.UsuarioNombre == usuarioNombre);
+
+            if (!string.IsNullOrEmpty(titulo))
+            {
+                query = query.Where(t => t.Titulo.Contains(titulo));
+            }
+
+            if (prioridad.HasValue)
+            {
+                query = query.Where(t => t.Prioridad == prioridad.Value);
+            }
+
+            return await query.ToListAsync();
         }
     }
 }

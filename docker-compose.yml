@@ -3,9 +3,10 @@ services:
   api:
     build: .
     ports:
-      - "5012:8080" # Puerto personalizado según las últimas 4 cifras
+      - "7012:8080" 
     environment:
       - ConnectionStrings__DefaultConnection=Server=db;Database=TaskCreatorDB;User=sa;Password=Your_password123;TrustServerCertificate=true;
+      - ASPNETCORE_ENVIRONMENT=Development
     depends_on:
       - db
     networks:
@@ -17,9 +18,9 @@ services:
       SA_PASSWORD: "Your_password123"
       ACCEPT_EULA: "Y"
     ports:
-      - "2105:1433" # Puerto invertido según las últimas 4 cifras
+      - "2107:1433" 
     volumes:
-      - sql-data:/var/opt/mssql
+      - sql-data:/var/opt/mssql   # <--- CORRECTO
     networks:
       - app-network
 

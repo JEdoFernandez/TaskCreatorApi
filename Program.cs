@@ -7,7 +7,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
 using System.Text.Json.Serialization;
-using TaskCreatorAPI.Models; // ✅ AÑADIDO: Using para los modelos
+using TaskCreatorAPI.Models; 
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -158,7 +158,7 @@ using (var scope = app.Services.CreateScope())
             var adminExistente = db.Usuarios.FirstOrDefault(u => u.Rol == "Admin");
             if (adminExistente == null)
             {
-                var adminUsuario = new Usuario // ✅ CORREGIDO: Sin Models.
+                var adminUsuario = new Usuario 
                 {
                     Nombre = "admin",
                     Email = "admin@taskcreator.com",

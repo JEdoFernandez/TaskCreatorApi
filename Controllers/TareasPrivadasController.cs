@@ -20,112 +20,205 @@ namespace TaskCreatorAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<List<Tarea>>> Get()
+        public async Task<ActionResult<List<object>>> Get()
         {
-            var usuarioId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-            var tareas = await _service.GetByUsuarioIdAsync(usuarioId);
-            return Ok(tareas);
+            var usuarioNombre = User.FindFirst(ClaimTypes.Name)?.Value;
+            var tareas = await _service.GetByUsuarioNombreAsync(usuarioNombre);
+            
+            var tareasFormateadas = tareas.Select(t => new 
+            {
+                t.Id,
+                t.Titulo,
+                t.Descripcion,
+                FechaCreacion = t.FechaCreacion.ToString("dd-MM-yyyy HH:mm:ss"),
+                FechaCompletado = t.FechaCompletado.HasValue ? t.FechaCompletado.Value.ToString("dd-MM-yyyy HH:mm:ss") : null,
+                t.Completada,
+                t.Prioridad,
+                t.Categoria,
+                t.UsuarioNombre
+            }).ToList();
+            
+            return Ok(tareasFormateadas);
         }
 
         [HttpGet("pendientes")]
-        public async Task<ActionResult<List<Tarea>>> GetPendientes()
+        public async Task<ActionResult<List<object>>> GetPendientes()
         {
-            var usuarioId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-            var tareas = await _service.GetPendientesByUsuarioIdAsync(usuarioId);
-            return Ok(tareas);
+            var usuarioNombre = User.FindFirst(ClaimTypes.Name)?.Value;
+            var tareas = await _service.GetPendientesByUsuarioNombreAsync(usuarioNombre);
+            
+            var tareasFormateadas = tareas.Select(t => new 
+            {
+                t.Id,
+                t.Titulo,
+                t.Descripcion,
+                FechaCreacion = t.FechaCreacion.ToString("dd-MM-yyyy HH:mm:ss"),
+                FechaCompletado = t.FechaCompletado.HasValue ? t.FechaCompletado.Value.ToString("dd-MM-yyyy HH:mm:ss") : null,
+                t.Completada,
+                t.Prioridad,
+                t.Categoria,
+                t.UsuarioNombre
+            }).ToList();
+            
+            return Ok(tareasFormateadas);
         }
 
         [HttpGet("completadas")]
-        public async Task<ActionResult<List<Tarea>>> GetCompletadas()
+        public async Task<ActionResult<List<object>>> GetCompletadas()
         {
-            var usuarioId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-            var tareas = await _service.GetCompletadasByUsuarioIdAsync(usuarioId);
-            return Ok(tareas);
+            var usuarioNombre = User.FindFirst(ClaimTypes.Name)?.Value;
+            var tareas = await _service.GetCompletadasByUsuarioNombreAsync(usuarioNombre);
+            
+            var tareasFormateadas = tareas.Select(t => new 
+            {
+                t.Id,
+                t.Titulo,
+                t.Descripcion,
+                FechaCreacion = t.FechaCreacion.ToString("dd-MM-yyyy HH:mm:ss"),
+                FechaCompletado = t.FechaCompletado.HasValue ? t.FechaCompletado.Value.ToString("dd-MM-yyyy HH:mm:ss") : null,
+                t.Completada,
+                t.Prioridad,
+                t.Categoria,
+                t.UsuarioNombre
+            }).ToList();
+            
+            return Ok(tareasFormateadas);
         }
 
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Tarea>> GetById(int id)
+        [HttpGet("titulo/{titulo}")]
+        public async Task<ActionResult<object>> GetByTitulo(string titulo)
         {
-            var tarea = await _service.GetByIdAsync(id);
-            if (tarea == null) return NotFound();
-
-            var usuarioId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-            if (tarea.UsuarioId != usuarioId) return Forbid();
-
-            return Ok(tarea);
+            var usuarioNombre = User.FindFirst(ClaimTypes.Name)?.Value;
+            var tarea = await _service.GetByTituloAsync(usuarioNombre, titulo);
+            
+            if (tarea == null) return NotFound(new { mensaje = $"Tarea '{titulo}' no encontrada" });
+            
+            var tareaFormateada = new 
+            {
+                tarea.Id,
+                tarea.Titulo,
+                tarea.Descripcion,
+                FechaCreacion = tarea.FechaCreacion.ToString("dd-MM-yyyy HH:mm:ss"),
+                FechaCompletado = tarea.FechaCompletado.HasValue ? tarea.FechaCompletado.Value.ToString("dd-MM-yyyy HH:mm:ss") : null,
+                tarea.Completada,
+                tarea.Prioridad,
+                tarea.Categoria,
+                tarea.UsuarioNombre
+            };
+            
+            return Ok(tareaFormateada);
         }
 
         [HttpPost]
-        public async Task<ActionResult<Tarea>> Create([FromBody] TareaCreateDTO dto)
+        public async Task<ActionResult<object>> Create([FromBody] TareaCreateDTO dto)
         {
-            var usuarioId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            var usuarioNombre = User.FindFirst(ClaimTypes.Name)?.Value;
             
             var tarea = new Tarea
             {
                 Titulo = dto.Titulo,
                 Descripcion = dto.Descripcion,
-                FechaLimite = dto.FechaLimite,
+                FechaCompletado = dto.FechaCompletado,
                 Prioridad = dto.Prioridad,
                 Categoria = dto.Categoria,
-                UsuarioId = usuarioId,
+                UsuarioNombre = usuarioNombre,
                 Completada = false
             };
 
             var creada = await _service.CreateAsync(tarea);
-            return CreatedAtAction(nameof(GetById), new { id = creada.Id }, creada);
+            
+            var respuesta = new 
+            {
+                creada.Id,
+                creada.Titulo,
+                creada.Descripcion,
+                FechaCreacion = creada.FechaCreacion.ToString("dd-MM-yyyy HH:mm:ss"),
+                FechaCompletado = creada.FechaCompletado.HasValue ? creada.FechaCompletado.Value.ToString("dd-MM-yyyy HH:mm:ss") : null,
+                creada.Completada,
+                creada.Prioridad,
+                creada.Categoria,
+                creada.UsuarioNombre
+            };
+            
+            return CreatedAtAction(nameof(GetByTitulo), new { titulo = creada.Titulo }, respuesta);
         }
 
-        [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] TareaCreateDTO dto)
+        [HttpPut("titulo/{titulo}")]
+        public async Task<IActionResult> Update(string titulo, [FromBody] TareaCreateDTO dto)
         {
-            var tarea = await _service.GetByIdAsync(id);
-            if (tarea == null) return NotFound();
+            var usuarioNombre = User.FindFirst(ClaimTypes.Name)?.Value;
+            var tareaExistente = await _service.GetByTituloAsync(usuarioNombre, titulo);
+            
+            if (tareaExistente == null) return NotFound(new { mensaje = $"Tarea '{titulo}' no encontrada" });
 
-            var usuarioId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-            if (tarea.UsuarioId != usuarioId) return Forbid();
+            // Verificar que el usuario es el propietario
+            if (tareaExistente.UsuarioNombre != usuarioNombre)
+                return Forbid();
 
-            tarea.Titulo = dto.Titulo;
-            tarea.Descripcion = dto.Descripcion;
-            tarea.FechaLimite = dto.FechaLimite;
-            tarea.Prioridad = dto.Prioridad;
-            tarea.Categoria = dto.Categoria;
+            tareaExistente.Titulo = dto.Titulo;
+            tareaExistente.Descripcion = dto.Descripcion;
+            tareaExistente.FechaCompletado = dto.FechaCompletado;
+            tareaExistente.Prioridad = dto.Prioridad;
+            tareaExistente.Categoria = dto.Categoria;
 
-            await _service.UpdateAsync(tarea);
-            return NoContent();
+            await _service.UpdateAsync(tareaExistente);
+            return Ok(new { mensaje = "Tarea actualizada correctamente" });
         }
 
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        [HttpDelete("titulo/{titulo}")]
+        public async Task<IActionResult> Delete(string titulo)
         {
-            var tarea = await _service.GetByIdAsync(id);
-            if (tarea == null) return NotFound();
+            var usuarioNombre = User.FindFirst(ClaimTypes.Name)?.Value;
+            var tareaExistente = await _service.GetByTituloAsync(usuarioNombre, titulo);
+            
+            if (tareaExistente == null) return NotFound(new { mensaje = $"Tarea '{titulo}' no encontrada" });
 
-            var usuarioId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-            if (tarea.UsuarioId != usuarioId) return Forbid();
+            // Verificar que el usuario es el propietario
+            if (tareaExistente.UsuarioNombre != usuarioNombre)
+                return Forbid();
 
-            await _service.DeleteAsync(id);
-            return NoContent();
+            await _service.DeleteAsync(tareaExistente.Id);
+            return Ok(new { mensaje = "Tarea eliminada correctamente" });
         }
 
-        [HttpPost("{id}/completar")]
-        public async Task<IActionResult> Completar(int id)
+        [HttpPost("titulo/{titulo}/completar")]
+        public async Task<IActionResult> Completar(string titulo)
         {
-            var tarea = await _service.GetByIdAsync(id);
-            if (tarea == null) return NotFound();
+            var usuarioNombre = User.FindFirst(ClaimTypes.Name)?.Value;
+            var tareaExistente = await _service.GetByTituloAsync(usuarioNombre, titulo);
+            
+            if (tareaExistente == null) return NotFound(new { mensaje = $"Tarea '{titulo}' no encontrada" });
 
-            var usuarioId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-            if (tarea.UsuarioId != usuarioId) return Forbid();
+            // Verificar que el usuario es el propietario
+            if (tareaExistente.UsuarioNombre != usuarioNombre)
+                return Forbid();
 
-            await _service.MarcarComoCompletadaAsync(id);
-            return NoContent();
+            await _service.MarcarComoCompletadaAsync(tareaExistente.Id);
+            return Ok(new { mensaje = "Tarea completada correctamente" });
         }
 
-        [HttpGet("buscar/{titulo}")]
-        public async Task<ActionResult<List<Tarea>>> Buscar(string titulo)
+        [HttpGet("buscar")]
+        public async Task<ActionResult<List<object>>> Buscar(
+            [FromQuery] string? titulo = null, 
+            [FromQuery] int? prioridad = null)
         {
-            var usuarioId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-            var tareas = await _service.BuscarPorTituloAsync(usuarioId, titulo);
-            return Ok(tareas);
+            var usuarioNombre = User.FindFirst(ClaimTypes.Name)?.Value;
+            var tareas = await _service.BuscarPorTituloYPrioridadAsync(usuarioNombre, titulo, prioridad);
+            
+            var tareasFormateadas = tareas.Select(t => new 
+            {
+                t.Id,
+                t.Titulo,
+                t.Descripcion,
+                FechaCreacion = t.FechaCreacion.ToString("dd-MM-yyyy HH:mm:ss"),
+                FechaCompletado = t.FechaCompletado.HasValue ? t.FechaCompletado.Value.ToString("dd-MM-yyyy HH:mm:ss") : null,
+                t.Completada,
+                t.Prioridad,
+                t.Categoria,
+                t.UsuarioNombre
+            }).ToList();
+
+            return Ok(tareasFormateadas);
         }
     }
 }

@@ -12,29 +12,32 @@ namespace TaskCreatorAPI.Services
             _repository = repository;
         }
 
-        public async Task<List<Tarea>> GetByUsuarioIdAsync(int usuarioId)
+        public async Task<List<Tarea>> GetByUsuarioNombreAsync(string usuarioNombre)
         {
-            return await _repository.GetByUsuarioIdAsync(usuarioId);
+            return await _repository.GetByUsuarioNombreAsync(usuarioNombre);
         }
 
-        public async Task<List<Tarea>> GetPendientesByUsuarioIdAsync(int usuarioId)
+        public async Task<List<Tarea>> GetPendientesByUsuarioNombreAsync(string usuarioNombre)
         {
-            return await _repository.GetPendientesByUsuarioIdAsync(usuarioId);
+            return await _repository.GetPendientesByUsuarioNombreAsync(usuarioNombre);
         }
 
-        public async Task<List<Tarea>> GetCompletadasByUsuarioIdAsync(int usuarioId)
+        public async Task<List<Tarea>> GetCompletadasByUsuarioNombreAsync(string usuarioNombre)
         {
-            return await _repository.GetCompletadasByUsuarioIdAsync(usuarioId);
+            return await _repository.GetCompletadasByUsuarioNombreAsync(usuarioNombre);
         }
 
-        public async Task<Tarea> GetByIdAsync(int id)
+        public async Task<Tarea> GetByTituloAsync(string usuarioNombre, string titulo)
         {
-            return await _repository.GetByIdAsync(id);
+            var tareas = await _repository.BuscarPorTituloAsync(usuarioNombre, titulo);
+            return tareas.FirstOrDefault();
         }
 
         public async Task<Tarea> CreateAsync(Tarea tarea)
         {
             tarea.FechaCreacion = DateTime.Now;
+            tarea.Completada = false;
+            tarea.FechaCompletado = null;
             return await _repository.AddAsync(tarea);
         }
 
@@ -58,9 +61,9 @@ namespace TaskCreatorAPI.Services
             return await _repository.UpdateAsync(tarea);
         }
 
-        public async Task<List<Tarea>> BuscarPorTituloAsync(int usuarioId, string titulo)
+        public async Task<List<Tarea>> BuscarPorTituloYPrioridadAsync(string usuarioNombre, string titulo = null, int? prioridad = null)
         {
-            return await _repository.BuscarPorTituloAsync(usuarioId, titulo);
+            return await _repository.BuscarPorTituloYPrioridadAsync(usuarioNombre, titulo, prioridad);
         }
     }
 }

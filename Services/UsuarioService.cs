@@ -33,7 +33,7 @@ namespace TaskCreatorAPI.Services
                 usuarioExistente.Email = dto.Email;
             
             if (!string.IsNullOrEmpty(dto.Contraseña))
-                usuarioExistente.Contraseña = dto.Contraseña; // Sin hash
+                usuarioExistente.Contraseña = dto.Contraseña; 
             
             usuarioExistente.Activo = dto.Activo;
             usuarioExistente.Rol = dto.Rol;

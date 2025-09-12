@@ -37,7 +37,7 @@ namespace TaskCreatorAPI.Services
             {
                 Nombre = nombre,
                 Email = email,
-                Contraseña = contraseña, // Sin hash (solo desarrollo)
+                Contraseña = contraseña, 
                 FechaRegistro = DateTime.Now,
                 Activo = true,
                 Rol = rol
